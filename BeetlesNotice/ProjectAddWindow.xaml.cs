@@ -11,17 +11,47 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using BeetleDB;
+using BeetleLog;
+using BeetleClasses;
 
 namespace BeetlesNotice
 {
     /// <summary>
     /// Логика взаимодействия для Window1.xaml
     /// </summary>
-    public partial class Window1 : Window
+    public partial class ProjectAddWindow : Window
     {
-        public Window1()
+       // public delegate void UpdateProjectContainer();
+      //  public event UpdateProjectContainer onAdd;
+
+        public ProjectAddWindow()
         {
             InitializeComponent();
+    //        this.onAdd += Application.Current.MainWindow.Up
+        }
+
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            Project project = new Project();
+            try
+            {
+                project.ProjectName = LblPrjName.Text;
+            }
+            catch (Exception ee)
+            {
+                BugTrackingLogger.Logger.Error("{0} Exception caught.", ee);
+                MessageBox.Show("Ошибка при вводе имени проекта","Ошибка при вводе данных.");
+            }
+            MainWindow.dd.InsertProject(ref project);
+           // onAdd();
+            Application.Current.MainWindow.Show();
+            this.Close();
+        }
+
+        private void PrAddWindow_Closed(object sender, EventArgs e)
+        {
+            Application.Current.MainWindow.Show();
         }
     }
 }

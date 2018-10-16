@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 
 namespace BeetleClasses
 {
-    class Project
+    public class Project
     {
-        public string ProjectName { get; set;}
         public int ProjectID { get; set; }
+        public string ProjectName { get; set;}
         public override string ToString()
         {
             return "ProjectName: " + ProjectName + "; ProjectID: " + ProjectID.ToString();
@@ -22,7 +22,7 @@ namespace BeetleClasses
         }
     }
 
-    class Task
+    public class Task
     {
         public int TaskID { get; set; }
         public string Theme { get; set; }
@@ -42,7 +42,7 @@ namespace BeetleClasses
         }
     }
 
-    class User
+    public class User
     {
         public int UserID { get; set; }
         public string FIO { get; set; }

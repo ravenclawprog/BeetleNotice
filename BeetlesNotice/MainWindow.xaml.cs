@@ -17,45 +17,34 @@ using BeetleLog;
 using BeetleDB;
 using BeetleClasses;
 
-namespace BeetleClasses
+
+namespace BeetlesNotice
 {
+    
     /// <summary>
     /// Логика взаимодействия для MainWindow.xaml
     /// </summary>
+    /// 
     public partial class MainWindow : Window
     {
-        BugTrackingDB dd;
 
+        public static BugTrackingDB dd;
+
+        public void UpdateProjects()
+        {
+            DGridProject.ItemsSource = dd.SelectProjects();
+        }
         public MainWindow()
         {
             InitializeComponent();
             BugTrackingLogger.InitLogger();
             LblDBFName.Content = "Имя файла БД:";
             dd = new BugTrackingDB("barkToTheMoon.db");
-            LblDBFName.Content = "Имя файла БД: "+dd.DBName();
-        }
-
-            /*List<User> users;
-
             dd.FillTable();
-            users = dd.SelectUsers();
-            TextOut.Text = "";
-            foreach(User usr in users)
-            {
-                TextOut.Text += (string)usr;
-            }*/
-           /* List<Project> prj;
-            Project pr = new Project();
-            pr.ProjectName = "Hello1";
-            dd.InsertProject(ref pr);
-            prj = dd.SelectProjects();
-            TextOut.Text = "";
-            foreach (Project pp in prj)
-            {
-                TextOut.Text += (string)pp;
-            }*/
-
-
+            LblDBFName.Content = "Имя файла БД: "+dd.DBName();
+            CmbBoxUsr.ItemsSource = dd.SelectUsers();
+        }
+        
         private void GeneralWindow_Closed(object sender, EventArgs e)
         {
             BugTrackingLogger.ClearTheLogger();
@@ -80,12 +69,90 @@ namespace BeetleClasses
                 dd.CreateDB();
                 dd.CreateTriggers();
                 LblDBFName.Content = "Имя файла БД: " + dd.DBName();
+
             }
         }
 
         private void BtnListPrj_Click(object sender, RoutedEventArgs e)
         {
             DGridProject.ItemsSource = dd.SelectProjects();
+        }
+
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            ProjectAddWindow w = new ProjectAddWindow();
+            Application.Current.MainWindow.Hide();
+            w.Show();
+        }
+
+        private void BtnDelPrj_Click(object sender, RoutedEventArgs e)
+        {
+            Project pr = DGridProject.SelectedItem as Project;
+            dd.DeleteProject(ref pr);
+            DGridProject.ItemsSource = dd.SelectProjects();
+        }
+
+        private void BtnUsrSelect_Click(object sender, RoutedEventArgs e)
+        {
+            DGridUser.ItemsSource = dd.SelectUsers();
+        }
+
+        private void BtnUsrAdd_Click(object sender, RoutedEventArgs e)
+        {
+            UserAddWindow w = new UserAddWindow();
+            Application.Current.MainWindow.Hide();
+            w.Show();
+        }
+
+        private void BtnDelUsr_Click(object sender, RoutedEventArgs e)
+        {
+            User usr = DGridUser.SelectedItem as User;
+            dd.DeleteUser(ref usr);
+            DGridUser.ItemsSource = dd.SelectUsers();
+        }
+
+        private void BtnTaskSelect_Click(object sender, RoutedEventArgs e)
+        {
+            DGridTask.ItemsSource = dd.SelectTasks();
+        }
+
+        private void BtnTaskUsersSelect_Click(object sender, RoutedEventArgs e)
+        {
+            if (CmbBoxUsr.SelectedItem != null)
+            {
+                User user = CmbBoxUsr.SelectedItem as User;
+                DGridTask.ItemsSource = dd.SelectTasks(user);
+            }
+            else
+            {
+                MessageBox.Show("Вы не выбрали пользователя для выбора задачи","Beetle Notice");
+            }
+            
+        }
+
+        private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (e.OriginalSource == this.MainTabControl)
+            {
+                if (this.MainTabControl.SelectedIndex == 1)
+                {
+                    CmbBoxUsr.ItemsSource = dd.SelectUsers();
+                }
+            }
+        }
+
+        private void BtnDelTask_Click(object sender, RoutedEventArgs e)
+        {
+            BeetleClasses.Task tsk = DGridTask.SelectedItem as BeetleClasses.Task;
+            dd.DeleteTask(ref tsk);
+            DGridTask.ItemsSource = dd.SelectTasks();
+        }
+
+        private void Button_Click_1(object sender, RoutedEventArgs e)
+        {
+            TaskAddWindow w = new TaskAddWindow();
+            Application.Current.MainWindow.Hide();
+            w.Show();
         }
     }
 }

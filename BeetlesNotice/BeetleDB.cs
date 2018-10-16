@@ -9,7 +9,7 @@ using BeetleClasses;
 
 namespace BeetleDB
 {
-    class BugTrackingDB
+    public class BugTrackingDB
     {
         private SQLiteConnection BTConnection;//соединение 
         private string BTName;//имя файла
@@ -323,6 +323,7 @@ namespace BeetleDB
             }
             catch (Exception e)
             {
+                BugTrackingLogger.Logger.Error("{0} Exception caught.", e);
                 return null;
             }
         }
@@ -347,6 +348,37 @@ namespace BeetleDB
                 }
                 reader.Close();
                 return projects;
+            }
+            catch (Exception e)
+            {
+                BugTrackingLogger.Logger.Error("{0} Exception caught.", e);
+                return null;
+            }
+        }
+
+        public List<BeetleClasses.Task> SelectTasks()
+        {
+            try
+            {
+                List<BeetleClasses.Task> tasks = new List<BeetleClasses.Task>();
+                BugTrackingLogger.Logger.Debug("Select Task.");
+                BTQueryString = String.Format("SELECT taskID, theme, typeOfTask, priority, description FROM Task ");
+                BTCommand = new SQLiteCommand(BTQueryString, BTConnection);
+                SQLiteDataReader reader = BTCommand.ExecuteReader();
+                while (reader.Read())
+                {
+                    tasks.Add(new BeetleClasses.Task()
+                    {
+                        TaskID = reader.GetInt32(0),
+                        Theme = (string)reader["theme"],
+                        TypeOfTask = (string)reader["typeOfTask"],
+                        Priority = reader.GetInt32(3),
+                        Description = (string)reader["description"]
+                    }
+                    );
+                }
+                reader.Close();
+                return tasks;
             }
             catch (Exception e)
             {
