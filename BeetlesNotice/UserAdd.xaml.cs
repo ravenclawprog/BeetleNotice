@@ -21,6 +21,9 @@ namespace BeetlesNotice
     /// </summary>
     public partial class UserAddWindow : Window
     {
+        public delegate void UpdateUserContainer();
+        public event UpdateUserContainer OnAddUser;// правильней было бы назвать OnCloseWindowAddTask
+
         public UserAddWindow()
         {
             InitializeComponent();
@@ -28,6 +31,7 @@ namespace BeetlesNotice
 
         private void Window_Closed(object sender, EventArgs e)
         {
+            OnAddUser();
             Application.Current.MainWindow.Show();
         }
 
@@ -39,13 +43,13 @@ namespace BeetlesNotice
                 user.FIO = LblUsrFIO.Text;
                 user.Post = LblUsrPost.Text;
                 user.Department = LblUsrDepartment.Text;
+                MainWindow.dd.InsertUser(ref user);
             }
             catch (Exception ee)
             {
                 BugTrackingLogger.Logger.Error("{0} Exception caught.", ee);
                 MessageBox.Show("Ошибка при заполнении полей данными", "Ошибка");
             }
-            MainWindow.dd.InsertUser(ref user);
             this.Close();
         }
     }

@@ -22,13 +22,12 @@ namespace BeetlesNotice
     /// </summary>
     public partial class ProjectAddWindow : Window
     {
-       // public delegate void UpdateProjectContainer();
-      //  public event UpdateProjectContainer onAdd;
+        public delegate void UpdateProjectContainer();
+        public event UpdateProjectContainer OnAddProject;
 
         public ProjectAddWindow()
         {
             InitializeComponent();
-    //        this.onAdd += Application.Current.MainWindow.Up
         }
 
         private void Button_Click(object sender, RoutedEventArgs e)
@@ -44,13 +43,13 @@ namespace BeetlesNotice
                 MessageBox.Show("Ошибка при вводе имени проекта","Ошибка при вводе данных.");
             }
             MainWindow.dd.InsertProject(ref project);
-           // onAdd();
             Application.Current.MainWindow.Show();
             this.Close();
         }
 
         private void PrAddWindow_Closed(object sender, EventArgs e)
         {
+            OnAddProject();
             Application.Current.MainWindow.Show();
         }
     }

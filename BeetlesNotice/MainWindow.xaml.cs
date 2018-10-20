@@ -29,10 +29,17 @@ namespace BeetlesNotice
     {
 
         public static BugTrackingDB dd;
-
         public void UpdateProjects()
         {
             DGridProject.ItemsSource = dd.SelectProjects();
+        }
+        public void UpdateTasks()
+        {
+            DGridTask.ItemsSource = dd.SelectTasks();
+        }
+        public void UpdateUsers()
+        {
+            DGridUser.ItemsSource = dd.SelectUsers();
         }
         public MainWindow()
         {
@@ -40,7 +47,6 @@ namespace BeetlesNotice
             BugTrackingLogger.InitLogger();
             LblDBFName.Content = "Имя файла БД:";
             dd = new BugTrackingDB("barkToTheMoon.db");
-            dd.FillTable();
             LblDBFName.Content = "Имя файла БД: "+dd.DBName();
             CmbBoxUsr.ItemsSource = dd.SelectUsers();
         }
@@ -57,6 +63,9 @@ namespace BeetlesNotice
             {
                 dd.ConnectToCreatedDataBase(openFileDialog.FileName);
                 LblDBFName.Content = "Имя файла БД: " + dd.DBName();
+                UpdateUsers();
+                UpdateProjects();
+                UpdateTasks();
             }
         }
 
@@ -69,18 +78,21 @@ namespace BeetlesNotice
                 dd.CreateDB();
                 dd.CreateTriggers();
                 LblDBFName.Content = "Имя файла БД: " + dd.DBName();
-
+                UpdateUsers();
+                UpdateProjects();
+                UpdateTasks();
             }
         }
 
         private void BtnListPrj_Click(object sender, RoutedEventArgs e)
         {
-            DGridProject.ItemsSource = dd.SelectProjects();
+            UpdateProjects();
         }
-
+        
         private void Button_Click(object sender, RoutedEventArgs e)
         {
             ProjectAddWindow w = new ProjectAddWindow();
+            w.OnAddProject += UpdateProjects;
             Application.Current.MainWindow.Hide();
             w.Show();
         }
@@ -89,17 +101,18 @@ namespace BeetlesNotice
         {
             Project pr = DGridProject.SelectedItem as Project;
             dd.DeleteProject(ref pr);
-            DGridProject.ItemsSource = dd.SelectProjects();
+            UpdateProjects();
         }
 
         private void BtnUsrSelect_Click(object sender, RoutedEventArgs e)
         {
-            DGridUser.ItemsSource = dd.SelectUsers();
+            UpdateUsers();
         }
 
         private void BtnUsrAdd_Click(object sender, RoutedEventArgs e)
         {
             UserAddWindow w = new UserAddWindow();
+            w.OnAddUser += UpdateUsers;
             Application.Current.MainWindow.Hide();
             w.Show();
         }
@@ -108,12 +121,13 @@ namespace BeetlesNotice
         {
             User usr = DGridUser.SelectedItem as User;
             dd.DeleteUser(ref usr);
-            DGridUser.ItemsSource = dd.SelectUsers();
+            dd.DeleteUnlinkedtasks();//после удаления пользователя необходимо также удалить задачи, которых нету в UserTaskCon
+            UpdateUsers();
         }
 
         private void BtnTaskSelect_Click(object sender, RoutedEventArgs e)
         {
-            DGridTask.ItemsSource = dd.SelectTasks();
+            UpdateTasks();
         }
 
         private void BtnTaskUsersSelect_Click(object sender, RoutedEventArgs e)
@@ -137,6 +151,15 @@ namespace BeetlesNotice
                 if (this.MainTabControl.SelectedIndex == 1)
                 {
                     CmbBoxUsr.ItemsSource = dd.SelectUsers();
+                    UpdateTasks();
+                }
+                if(this.MainTabControl.SelectedIndex == 0)
+                {
+                    UpdateProjects();
+                }
+                if (this.MainTabControl.SelectedIndex == 2)
+                {
+                    UpdateUsers();
                 }
             }
         }
@@ -145,12 +168,13 @@ namespace BeetlesNotice
         {
             BeetleClasses.Task tsk = DGridTask.SelectedItem as BeetleClasses.Task;
             dd.DeleteTask(ref tsk);
-            DGridTask.ItemsSource = dd.SelectTasks();
+            UpdateTasks();
         }
 
         private void Button_Click_1(object sender, RoutedEventArgs e)
         {
             TaskAddWindow w = new TaskAddWindow();
+            w.OnAddTask += UpdateTasks;
             Application.Current.MainWindow.Hide();
             w.Show();
         }

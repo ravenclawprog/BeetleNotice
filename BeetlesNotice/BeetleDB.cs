@@ -14,9 +14,9 @@ namespace BeetleDB
         private SQLiteConnection BTConnection;//соединение 
         private string BTName;//имя файла
         private string BTQueryString = "";//строка запроса
-        private SQLiteCommand BTCommand;
-        private const string BTConstName = "BugTracking.db";
-        public string DBName()
+        private SQLiteCommand BTCommand;//класс команды
+        private const string BTConstName = "BugTracking.db";//базовое имя
+        public string DBName()//функция получения значения имени БД
         {
             return BTName;
         }
@@ -84,21 +84,27 @@ namespace BeetleDB
             try
             {
                 BugTrackingLogger.Logger.Debug("Create table Project.");
-                BTQueryString = "CREATE TABLE IF NOT EXISTS Project(projectID INTEGER PRIMARY KEY AUTOINCREMENT," + //autoincrement очень тормозит, необходима замена
-                    "name VARCHAR(50));";
+                BTQueryString = String.Format("CREATE TABLE IF NOT EXISTS Project(projectID INTEGER PRIMARY KEY AUTOINCREMENT," + //autoincrement очень тормозит, необходима замена
+                    "name VARCHAR({0}));", new Project().ProjectNameLength());
                 BTCommand = new SQLiteCommand(BTQueryString, BTConnection);
                 BTCommand.ExecuteNonQuery();
 
                 BugTrackingLogger.Logger.Debug("Create table Task.");
-                BTQueryString = "CREATE TABLE IF NOT EXISTS Task(taskID INTEGER PRIMARY KEY AUTOINCREMENT," + //autoincrement очень тормозит, необходима замена
-                    "theme VARCHAR(50), typeOfTask VARCHAR(20), priority INTEGER, description TEXT, " +
-                    "projectID INTEGER, FOREIGN KEY(projectID) REFERENCES Project(projectID));";
+                BTQueryString = String.Format("CREATE TABLE IF NOT EXISTS Task(taskID INTEGER PRIMARY KEY AUTOINCREMENT," + //autoincrement очень тормозит, необходима замена
+                    "theme VARCHAR({0}), typeOfTask VARCHAR({1}), priority INTEGER, description VARCHAR({2}), " +// вот тут заменил TEXT на VARCHAR - чтобы можно было менять
+                    "projectID INTEGER, FOREIGN KEY(projectID) REFERENCES Project(projectID));",
+                    new BeetleClasses.Task().ThemeLength(),
+                    new BeetleClasses.Task().TypeOfTaskLength(),
+                    new BeetleClasses.Task().DescriptionLength());
                 BTCommand = new SQLiteCommand(BTQueryString, BTConnection);
                 BTCommand.ExecuteNonQuery();
 
                 BugTrackingLogger.Logger.Debug("Create table User.");
-                BTQueryString = "CREATE TABLE IF NOT EXISTS User(userID INTEGER PRIMARY KEY AUTOINCREMENT," + //autoincrement очень тормозит, необходима замена
-                    "FIO VARCHAR(50), post VARCHAR(20), department varchar(40));";
+                BTQueryString = String.Format("CREATE TABLE IF NOT EXISTS User(userID INTEGER PRIMARY KEY AUTOINCREMENT," + //autoincrement очень тормозит, необходима замена
+                    "FIO VARCHAR({0}), post VARCHAR({1}), department varchar({2}));",
+                    new User().FIOLength(),
+                    new User().PostLength(),
+                    new User().DepartmentLength());
                 BTCommand = new SQLiteCommand(BTQueryString, BTConnection);
                 BTCommand.ExecuteNonQuery();
 
@@ -121,7 +127,7 @@ namespace BeetleDB
             try
             {
                 BugTrackingLogger.Logger.Debug("Create cascade delete from table Task trigger.");
-                BTQueryString = "CREATE TRIGGER IF NOT EXISTS cascade_delete_UserTaskCon_from_trigger" +
+                BTQueryString = "CREATE TRIGGER IF NOT EXISTS cascade_delete_Task_from_trigger" +
                     " BEFORE DELETE ON Task " +
                     " FOR EACH ROW BEGIN " +
                     "   DELETE FROM UserTaskCon WHERE UserTaskCon.tID = OLD.taskID; " +
@@ -137,13 +143,13 @@ namespace BeetleDB
                     " END;";
                 BTCommand = new SQLiteCommand(BTQueryString, BTConnection);
                 BTCommand.ExecuteNonQuery();
-
-                BugTrackingLogger.Logger.Debug("Create cascade delete from table UserTaskCon trigger.");
+                /*SQlite не вызывает рекурсивно триггеры, поэтому при косвенном вызове(при вызове через USERS),как результат данный триггер не работает*/
+                BugTrackingLogger.Logger.Debug("Create cascade delete from table UserTaskCon trigger.");// удаление при обнаружении удаленного пользователя, т.е. если у нас удалили пользователя, то необходимо удалить и задачу
                 BTQueryString = "CREATE TRIGGER IF NOT EXISTS cascade_delete_usertaskcon_from_trigger" +
                     " BEFORE DELETE ON UserTaskCon " +
-                    " FOR EACH ROW BEGIN " +
-                    "   DELETE FROM Task WHERE OLD.tID IN " +
-                    " (SELECT Task.taskID FROM Task LEFT JOIN UserTaskCon ON Task.TaskID = UserTaskCon.TaskID" +
+                    " BEGIN " +
+                    "   DELETE FROM Task WHERE Task.taskID IN " +
+                    " (SELECT Task.taskID FROM Task LEFT OUTER JOIN UserTaskCon ON Task.taskID = UserTaskCon.tID" +
                     " WHERE UserTaskCon.tID IS NULL) ; " +
                     " END;";
                 BTCommand = new SQLiteCommand(BTQueryString, BTConnection);
@@ -228,7 +234,7 @@ namespace BeetleDB
                 BugTrackingLogger.Logger.Error("{0} Exception caught.", e);
             }
         }
-        public void InsertTask(ref BeetleClasses.Task ts, ref Project pr, int usid)
+        public void InsertTask(BeetleClasses.Task ts, Project pr, User usr)
         {
             BugTrackingLogger.Logger.Information("Insert task.");
             try
@@ -246,9 +252,9 @@ namespace BeetleDB
                 BugTrackingLogger.Logger.Debug("TaskID of last inserted task = {0}", lastId);
 
                 BTQueryString = String.Format("INSERT INTO UserTaskCon(uID,tID) values ({0},{1});",
-                    usid, lastId);
+                    usr.UserID, lastId);
                 BugTrackingLogger.Logger.Debug("UserID = {0} \n TaskID = {1}",
-                    usid, lastId);
+                    usr.UserID, lastId);
                 BTCommand = new SQLiteCommand(BTQueryString, BTConnection);
                 BTCommand.ExecuteNonQuery();
 
@@ -283,13 +289,14 @@ namespace BeetleDB
                 BTQueryString = @"select last_insert_rowid()";
                 BTCommand = new SQLiteCommand(BTQueryString, BTConnection);
                 long lastId = (long)BTCommand.ExecuteScalar();
+                us.UserID = (int)lastId;
 
                 BeetleClasses.Task ts = new BeetleClasses.Task();
                 ts.Theme = "Разработка системы отслеживания задач";
                 ts.Priority = 1;
                 ts.TypeOfTask = "Разработка ПО";
                 ts.Description = "Необходимо разработать систему по отслеживанию задач/ошибок (bug tracking system)";
-                this.InsertTask(ref ts, ref pr, (int)lastId);
+                this.InsertTask(ts,pr,us);
             }
             catch (Exception e)
             {
@@ -305,7 +312,7 @@ namespace BeetleDB
             {
                 List<User> users = new List<User>();
                 BugTrackingLogger.Logger.Debug("Select Users.");
-                BTQueryString = "SELECT userID,FIO,post,department FROM User order by FIO desc";
+                BTQueryString = "SELECT userID,FIO,post,department FROM User";//order by FIO desc
                 BTCommand = new SQLiteCommand(BTQueryString, BTConnection);
                 SQLiteDataReader reader = BTCommand.ExecuteReader();
                 while (reader.Read())
@@ -340,6 +347,7 @@ namespace BeetleDB
                 while (reader.Read())
                 {
                     projects.Add(new Project()
+                    //projectList.Add(new Project()
                     {
                         ProjectName = (string)reader["name"],
                         ProjectID = reader.GetInt32(0)
@@ -426,6 +434,7 @@ namespace BeetleDB
                 BugTrackingLogger.Logger.Debug("Select Task by User.");
                 BTQueryString = String.Format("SELECT taskID, theme, typeOfTask, priority, description FROM Task,UserTaskCon" +
                     " WHERE Task.taskID = UserTaskCon.tID AND UserTaskCon.uID={0};", usr.UserID);
+
                 BTCommand = new SQLiteCommand(BTQueryString, BTConnection);
                 SQLiteDataReader reader = BTCommand.ExecuteReader();
                 while (reader.Read())
@@ -497,6 +506,23 @@ namespace BeetleDB
             {
                 BugTrackingLogger.Logger.Error("{0} Exception caught.", e);
             }
+        }
+        public void DeleteUnlinkedtasks()
+        {
+            BugTrackingLogger.Logger.Information("Delete unlinked task.");
+            try
+            {
+                BTQueryString = String.Format("DELETE FROM Task WHERE Task.taskID IN " +
+                    " (SELECT Task.taskID FROM Task LEFT OUTER JOIN UserTaskCon ON Task.taskID = UserTaskCon.tID" +
+                    " WHERE UserTaskCon.tID IS NULL) ;");
+                BTCommand = new SQLiteCommand(BTQueryString, BTConnection);
+                BTCommand.ExecuteNonQuery();
+            }
+            catch (Exception e)
+            {
+                BugTrackingLogger.Logger.Error("{0} Exception caught.", e);
+            }
+            
         }
     }
 }
